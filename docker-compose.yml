@@ -1,0 +1,47 @@
+version: '2'
+
+networks:
+  proxynet:
+    name: proxynet
+
+volumes:
+  db05:
+  app05:
+
+services:
+  mariadb:
+    image: mariadb:10.6
+    container_name: nextcloud-db
+    restart: always
+    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
+    volumes:
+      - db05:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASS}
+      - MYSQL_PASSWORD=${DB_PASS}
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+    networks:
+      - proxynet
+
+  app:
+    image: nextcloud:32.0.1
+    container_name: nextcloud-app
+    hostname: nextcloud
+    restart: always
+    ports:
+      - 80:80
+    links:
+      - mariadb
+    volumes:
+      - app05:/var/www/html
+    environment:
+      - MYSQL_PASSWORD=${DB_PASS}
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_HOST=mariadb
+      - OVERWRITECLIURL=${URL}
+      - OVERWRITEPROTOCOL=https
+      - APACHE_DISABLE_REWRITE_IP=1
+    networks:
+      - proxynet
